@@ -1,9 +1,10 @@
-define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Palette, ColorSelector, Menu, Sketchy) {
+define(['lib/functions','./Palette','./Menu','./brushes/sketchy'], function(fn, Palette, Menu, Sketchy) {
 	const REV = 6,
 		   //BRUSHES = ["sketchy", "shaded", "chrome", "fur", "longfur", "web", "", "simple", "squares", "ribbon", "", "circles", "grid"],
 		   BRUSHES = ["Sketchy"],
 		   USER_AGENT = navigator.userAgent.toLowerCase();
 
+/*
 	var SCREEN_WIDTH = window.innerWidth,
 		SCREEN_HEIGHT = window.innerHeight,
 		BRUSH_SIZE = 1,
@@ -30,9 +31,198 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 		isMenuMouseOver = false,
 		shiftKeyIsDown = false,
 		altKeyIsDown = false;
+		*/
+
+	function Harmony() {
+	}
+
+	Harmony.prototype = {
+		$container: null,
+		controls: {
+			$container: null,
+			$foregroundColorSelector: null,
+			$backgroundColorSelector: null,
+		},
+		pressedKeys: {
+			alt: false,
+			shift: false
+		},
+		canvas: null,
+		flattenCanvas: null,
+		palette: null,
+		brush: null,
+		foregroundColorSelector: null,
+		backgroundColorSelector: null,
+		menu: null,
+		
+		createCanvas: function() {
+			var canvas = document.createElement('canvas');
+			canvas.width = this.$container.width();
+			canvas.height = this.$container.height();
+			return canvas;
+		},
+
+		populateFromLocalStorage: function() {
+			var ls = window.localStorage;
+			var image;
+			if (('canvas' in ls) && ls.canvas) {
+				image = new Image();
+				image.addEventListener("load", this.bind(function(event) {
+					image.removeEventListener(event.type, arguments.callee, false);
+					this.context.drawImage(image, 0, 0);
+				}, false));
+				image.src = ls.canvas;			
+			}
+			if (('brushColor' in ls) && ls.brushColor) {
+				this.brushColor = ls.brushColor;
+			}
+			if (('backgroundColor' in ls) && ls.backgroundColor) {
+				this.backgroundColor = ls.backgroundColor;
+			}
+		},
+
+		trackCanvasMouse: function() {
+			this.$container.on('mousemove', this.bind(this.onCanvasMouseMove));
+		},
+
+		forgetCanvasMouse: function() {
+			this.$container.off('mousemove');
+		},
+
+		resetAutoSave: function() {
+			clearTimeout(this.autoSaveTimeOutId);
+			this.autoSaveTimeOutId = setTimeout(this.bind(this.saveToLocalStorage), 2000);
+		},
+
+		onCanvasMouseDown: function(event) {
+			var data, position;
+
+			clearTimeout(this.autoSaveTimeOutId);
+			//cleanPopUps();
+			
+			if (this.pressedKeys.alt) {
+				flatten();
+				data = this.flattenCanvas.getContext("2d").getImageData(
+					0,
+					0,
+					this.flattenCanvas.width,
+					this.flattenCanvas.height
+				).data;
+				position = (event.offsetX + (event.offsetY * canvas.width)) * 4;
+				this.foregroundColorSelector.setColor([data[position], data[position + 1], data[position + 2]]);
+				return;
+			}
+			
+			//BRUSH_PRESSURE = wacom && wacom.isWacom ? wacom.pressure : 1;
+			
+			this.brush.strokeStart(event.offsetX, event.offsetY);
+
+			this.trackCanvasMouse();
+			//window.addEventListener('mousemove', onCanvasMouseMove, false);
+			//window.addEventListener('mouseup', onCanvasMouseUp, false);
+		},
+
+		onCanvasMouseMove: function(event) {
+			//BRUSH_PRESSURE = wacom && wacom.isWacom ? wacom.pressure : 1;
+			this.brush.stroke(event.offsetX, event.offsetY);
+		},
+
+		onCanvasMouseUp: function() {
+			this.brush.strokeEnd();
+			this.forgetCanvasMouse();
+			this.resetAutoSave();
+			/*
+			window.removeEventListener('mousemove', onCanvasMouseMove, false);
+			window.removeEventListener('mouseup', onCanvasMouseUp, false);
+			
+			if (STORAGE)
+			{
+				clearTimeout(saveTimeOut);
+				saveTimeOut = setTimeout(saveToLocalStorage, 2000, true);
+			}
+			*/
+		},
+
+		/*
+		function onCanvasTouchStart( event )
+		{
+			cleanPopUps();		
+
+			if(event.touches.length == 1)
+			{
+				event.preventDefault();
+				
+				brush.strokeStart( event.touches[0].pageX, event.touches[0].pageY );
+				
+				window.addEventListener('touchmove', onCanvasTouchMove, false);
+				window.addEventListener('touchend', onCanvasTouchEnd, false);
+			}
+		}
+
+		function onCanvasTouchMove( event )
+		{
+			if(event.touches.length == 1)
+			{
+				event.preventDefault();
+				brush.stroke( event.touches[0].pageX, event.touches[0].pageY );
+			}
+		}
+
+		function onCanvasTouchEnd( event )
+		{
+			if(event.touches.length == 0)
+			{
+				event.preventDefault();
+				
+				brush.strokeEnd();
+
+				window.removeEventListener('touchmove', onCanvasTouchMove, false);
+				window.removeEventListener('touchend', onCanvasTouchEnd, false);
+			}
+		}
+		*/
+
+		saveToLocalStorage: function() {
+			window.localStorage.canvas = this.canvas.toDataURL('image/png');
+		},
+
+		flatten: function() {
+			var context = this.flattenCanvas.getContext("2d");
+			context.fillStyle = this.backgroundColor.rgb();
+			//context.fillStyle = 'rgb(' + this.backgroundColor[0] + ', ' + this.backgroundColor[1] + ', ' + this.backgroundColor[2] + ')';
+			context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+			context.drawImage(this.canvas, 0, 0);
+		},
+
+		bind: function(f) {
+			return fn.bind(f, this);
+		},
+
+		init: function() {
+			this.canvas = this.createCanvas();
+			this.context = this.canvas.getContext('2d');
+			this.flattenCanvas = this.createCanvas();
+			this.$container.append(this.canvas);
+
+			this.palette = new Palette();
+			this.brush = new Sketchy(this.context);
+
+			this.menu = new Menu();
+
+			this.populateFromLocalStorage();
+		
+			this.canvas.addEventListener('mousedown', this.bind(this.onCanvasMouseDown), false);
+			this.canvas.addEventListener('mouseup', this.bind(this.onCanvasMouseUp), false);
+			//this.canvas.addEventListener('touchstart', onCanvasTouchStart, false);
+		}
+
+	};
+
+	return Harmony;
 
 	function init()
 	{
+		/*
 		var hash, palette, embed, localStorageImage;
 		
 		if (USER_AGENT.search("android") > -1 || USER_AGENT.search("iphone") > -1)
@@ -46,6 +236,7 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 		
 		container = document.createElement('div');
 		document.body.appendChild(container);
+		*/
 
 		/*
 		 * TODO: In some browsers a naste "Plugin Missing" window appears and people is getting confused.
@@ -59,6 +250,7 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 		 * wacom = document.embeds["wacom-plugin"];
 		 */
 
+		/*
 		canvas = document.createElement("canvas");
 		canvas.width = SCREEN_WIDTH;
 		canvas.height = SCREEN_HEIGHT;
@@ -153,6 +345,7 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 			brush = eval("new " + BRUSHES[0] + "(context)");
 		}
 		
+		*/
 		window.addEventListener('mousemove', onWindowMouseMove, false);
 		window.addEventListener('resize', onWindowResize, false);
 		window.addEventListener('keydown', onWindowKeyDown, false);
@@ -177,8 +370,8 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 
 	function onWindowMouseMove( event )
 	{
-		mouseX = event.clientX;
-		mouseY = event.clientY;
+		mouseX = event.offsetX;
+		mouseY = event.offsetY;
 	}
 
 	function onWindowResize()
@@ -406,7 +599,7 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 			flatten();
 			
 			data = flattenCanvas.getContext("2d").getImageData(0, 0, flattenCanvas.width, flattenCanvas.height).data;
-			position = (event.clientX + (event.clientY * canvas.width)) * 4;
+			position = (event.offsetX + (event.offsetY * canvas.width)) * 4;
 			
 			foregroundColorSelector.setColor( [ data[position], data[position + 1], data[position + 2] ] );
 			
@@ -415,7 +608,7 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 		
 		BRUSH_PRESSURE = wacom && wacom.isWacom ? wacom.pressure : 1;
 		
-		brush.strokeStart( event.clientX, event.clientY );
+		brush.strokeStart( event.offsetX, event.offsetY );
 
 		window.addEventListener('mousemove', onCanvasMouseMove, false);
 		window.addEventListener('mouseup', onCanvasMouseUp, false);
@@ -425,7 +618,7 @@ define(['./Palette','./ColorSelector','./Menu','./brushes/sketchy'], function(Pa
 	{
 		BRUSH_PRESSURE = wacom && wacom.isWacom ? wacom.pressure : 1;
 		
-		brush.stroke( event.clientX, event.clientY );
+		brush.stroke( event.offsetX, event.offsetY );
 	}
 
 	function onCanvasMouseUp()

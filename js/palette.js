@@ -1,43 +1,69 @@
-define([], function() {
+define(['lib/math/math','./ColorSelector'], function(math, ColorSelector) {
+
+	var POLAR_GRADIENT_TURNS = 3;
 
 	function Palette() {
-		var canvas, context, offsetx, offsety, radius = 90,
-		count = 1080, oneDivCount = 1 / count, countDiv360 = count / 360, degreesToRadians = Math.PI / 180,
-		i, angle, angle_cos, angle_sin, gradient;
+		this.init();
+		this.foregroundColorSelector = new ColorSelector(this.canvas);
+		this.backgroundColorSelector = new ColorSelector(this.canvas);
+	}
 
-		canvas = document.createElement("canvas");
-		canvas.width = 250;
-		canvas.height = 250;
+	Palette.prototype = {
+		canvas: null,
+		context: null,
+		gradient: null,
+		foregroundColorSelector: null,
+		backgroundColorSelector: null,
+		dimensions: { width: 250, height: 250 },
+		polarGradientRadius: 90,
 
-		offsetx = canvas.width / 2;
-		offsety = canvas.height / 2;
+		drawPolarGradient: function(offsetx, offsety) {
+			var angle, angle_cos, angle_sin;
+			var count = POLAR_GRADIENT_TURNS * 360;
+			var count_inverse = 1 / count;
+			var radius = 90;
 
-		context = canvas.getContext("2d");
-		context.lineWidth = 1;
+			for (i = 0; i < count; i++) {
+				angle = math.deg2rad(i / POLAR_GRADIENT_TURNS);
+				angle_cos = Math.cos(angle);
+				angle_sin = Math.sin(angle);
 
-		// http://www.boostworthy.com/blog/?p=226
+				this.context.strokeStyle = "hsl(" + Math.floor((i * count_inverse) * 360) + ", 100%, 50%)";
+				this.context.beginPath();
+				this.context.moveTo(angle_cos + offsetx, angle_sin + offsety);
+				this.context.lineTo(angle_cos * this.polarGradientRadius + offsetx, angle_sin * this.polarGradientRadius + offsety);
+				this.context.stroke();
+			}
+		},
 
-		for(i = 0; i < count; i++) {
-			angle = i / countDiv360 * degreesToRadians;
-			angle_cos = Math.cos(angle);
-			angle_sin = Math.sin(angle);
+		getGradient: function() {
+			var offsetx = this.canvas.width / 2;
+			var offsety = this.canvas.height / 2;
+			
+			this.drawPolarGradient(offsetx, offsety);
+			this.gradient = this.context.createRadialGradient(offsetx, offsetx, 0, offsetx, offsetx, this.polarGradientRadius);
+			this.gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+			this.gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+		},
 
-			context.strokeStyle = "hsl(" + Math.floor( (i * oneDivCount) * 360 ) + ", 100%, 50%)";
-			context.beginPath();
-			context.moveTo(angle_cos + offsetx, angle_sin + offsety);
-			context.lineTo(angle_cos * radius + offsetx, angle_sin * radius + offsety);
-			context.stroke();
+		setupCanvas: function() {
+			this.canvas = document.createElement("canvas");
+			this.canvas.width = this.dimensions.width
+			this.canvas.height = this.dimensions.height;
+
+			this.context = this.canvas.getContext("2d");
+			this.context.lineWidth = 1;
+		},
+
+		init: function() {
+			this.setupCanvas();
+			this.gradient = this.getGradient();
+
+			this.context.fillStyle = this.gradient;
+			this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		}
 
-		gradient = context.createRadialGradient(offsetx, offsetx, 0, offsetx, offsetx, radius);
-		gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-		gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-		context.fillStyle = gradient;
-		context.fillRect(0, 0, canvas.width, canvas.height);
-
-		return canvas;
-	}
+	};
 
 	return Palette;
 
