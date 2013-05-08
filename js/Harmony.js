@@ -1,4 +1,4 @@
-define(['lib/functions','./Palette','./Menu','./brushes/sketchy'], function(fn, Palette, Menu, Sketchy) {
+define(['lib/functions','./Palette','./Controls','./brushes/sketchy'], function(fn, Palette, Controls, Sketchy) {
 	const REV = 6,
 		   //BRUSHES = ["sketchy", "shaded", "chrome", "fur", "longfur", "web", "", "simple", "squares", "ribbon", "", "circles", "grid"],
 		   BRUSHES = ["Sketchy"],
@@ -47,8 +47,10 @@ define(['lib/functions','./Palette','./Menu','./brushes/sketchy'], function(fn, 
 			alt: false,
 			shift: false
 		},
+		trimBeforeSaving: true,
 		canvas: null,
 		flattenCanvas: null,
+		trimmedCanvas: null,
 		palette: null,
 		brush: null,
 		foregroundColorSelector: null,
@@ -188,26 +190,78 @@ define(['lib/functions','./Palette','./Menu','./brushes/sketchy'], function(fn, 
 
 		flatten: function() {
 			var context = this.flattenCanvas.getContext("2d");
-			context.fillStyle = this.backgroundColor.rgb();
-			//context.fillStyle = 'rgb(' + this.backgroundColor[0] + ', ' + this.backgroundColor[1] + ', ' + this.backgroundColor[2] + ')';
+			context.fillStyle = '#FFFFFF';
 			context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 			context.drawImage(this.canvas, 0, 0);
+		},
+
+		trimFlatCanvas: function() {
+			var context = this.flattenCanvas.getContext("2d"),
+				data = context.getImageData(0, 0, this.canvas.width, this.canvas.height).data,
+				topLeft = { x: this.canvas.width, y: this.canvas.height },
+				bottomRight = { x: 0, y: 0 },
+				row = 1, col = 0
+			;
+			while (row < this.canvas.height) {
+				col = 0;
+				while (col < this.canvas.width) {
+					if (data[((this.canvas.width * row) + col) * 4] !== 255
+						|| data[((this.canvas.width * row) + col) * 4 + 1] !== 255
+						|| data[((this.canvas.width * row) + col) * 4 + 2] !== 255
+					) {
+						topLeft.x = Math.min(topLeft.x, col);
+						topLeft.y = Math.min(topLeft.y, row);
+						bottomRight.x = Math.max(bottomRight.x, col);
+						bottomRight.y = Math.max(bottomRight.y, row);
+					}
+					col++;
+				}
+				row++;
+			}
+			this.trimmedCanvas.width = bottomRight.x - topLeft.x;
+			this.trimmedCanvas.height = bottomRight.y - topLeft.y;
+			this.trimmedCanvas.getContext('2d').drawImage(
+				this.flattenCanvas,
+				topLeft.x,
+				topLeft.y,
+				this.trimmedCanvas.width,
+				this.trimmedCanvas.height,
+				0,
+				0,
+				this.trimmedCanvas.width,
+				this.trimmedCanvas.height
+			);
 		},
 
 		bind: function(f) {
 			return fn.bind(f, this);
 		},
 
+		clear: function() {
+			if (confirm("Are you sure?")) {
+				this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+				this.saveToLocalStorage();
+			}
+		},
+
+		save: function() {
+			this.flatten();
+			if (this.trimBeforeSaving) {
+				this.trimFlatCanvas();
+			}
+		},
+
 		init: function() {
 			this.canvas = this.createCanvas();
 			this.context = this.canvas.getContext('2d');
 			this.flattenCanvas = this.createCanvas();
+			this.trimmedCanvas = this.createCanvas();
 			this.$container.append(this.canvas);
 
 			this.palette = new Palette();
 			this.brush = new Sketchy(this.context);
 
-			this.menu = new Menu();
+			this.controls = new Controls(this, this.$controlsContainer);
 
 			this.populateFromLocalStorage();
 		

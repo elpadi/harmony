@@ -1,21 +1,28 @@
-define([], function(Menu) {
+define(['lib/dom'], function(dom) {
 	
-	function Menu() {
-		this.init();
+	function Controls(harmony, $container) {
+		this.harmony = harmony;
+		this.$container = $container;
+		this.$clearButton = $container.find('.harmony__clear-button');
+		this.$saveButton = $container.find('.harmony__save-button');
+		this.$foregroundColor = $container.find('.color-selector__foreground');
+
+		this.setEventHandlers();
 	}
 
-	Menu.prototype = {
-	
-		container: null,
+	Controls.prototype = {
+		harmony: null,
+		$container: null,
+		$foregroundColor: null,
+		$backgroundColor: null,
+		$clearButton: null,
+		$saveButton: null,
 		
-		foregroundColor: null,
-		backgroundColor: null,
-		
-		selector: null,
-		save: null,
-		clear: null,
-		about: null,
-		
+		setEventHandlers: function() {
+			this.$clearButton.on('click', dom.events.preventDefault(this.harmony.bind(this.harmony.clear)));
+			this.$saveButton.on('click', dom.events.preventDefault(this.harmony.bind(this.harmony.save)));
+		},
+		/*
 		init: function() {
 			var option, space, separator, color_width = 15, color_height = 15;
 
@@ -95,9 +102,9 @@ define([], function(Menu) {
 			context.fillStyle = 'rgba(0, 0, 0, 0.1)';
 			context.fillRect(0, 0, this.backgroundColor.width, 1);		
 		}
-	
+		*/
 	};
 
-	return Menu;
+	return Controls;
 
 });
