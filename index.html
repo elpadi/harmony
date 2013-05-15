@@ -6,6 +6,13 @@
 		<meta name="description" content="Procedural Drawing Tool"/>
 		<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
 		<style type="text/css">
+			html, body {
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+			/*
 			*
 			{
 				color: #444;
@@ -59,25 +66,23 @@
 				margin-left: 1px;
 				background-color: #eee;
 			}
+			*/
 		</style>
 	</head>
 	<body>
-		<script type="text/javascript" src="js/brushes/circles.js"></script>
-		<script type="text/javascript" src="js/brushes/chrome.js"></script>
-		<script type="text/javascript" src="js/brushes/fur.js"></script>
-		<script type="text/javascript" src="js/brushes/grid.js"></script>
-		<script type="text/javascript" src="js/brushes/longfur.js"></script>
-		<script type="text/javascript" src="js/brushes/ribbon.js"></script>
-		<script type="text/javascript" src="js/brushes/shaded.js"></script>
-		<script type="text/javascript" src="js/brushes/simple.js"></script>
-		<script type="text/javascript" src="js/brushes/sketchy.js"></script>
-		<script type="text/javascript" src="js/brushes/squares.js"></script>
-		<script type="text/javascript" src="js/brushes/web.js"></script>
-		<script type="text/javascript" src="js/colorutils.js"></script>
-		<script type="text/javascript" src="js/colorselector.js"></script>
-		<script type="text/javascript" src="js/palette.js"></script>
-		<script type="text/javascript" src="js/menu.js"></script>
-		<script type="text/javascript" src="js/about.js"></script>	
-		<script type="text/javascript" src="js/main.js"></script>
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.5/require.min.js"></script>
+		<script type="text/javascript">
+			requirejs.config({
+				paths: {
+					lib: '../js-libs',
+					underscore: 'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min',
+					dollar: 'http://cdnjs.cloudflare.com/ajax/libs/require-jquery/0.25.0/require-jquery.min'
+				}
+			});
+			require(['js/Harmony'], function(Harmony) {
+				Harmony.prototype.$container = $(document.body);
+				window.harmony = new Harmony();
+			});
+		</script>
 	</body>
 </html>
