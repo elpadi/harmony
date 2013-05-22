@@ -1,15 +1,10 @@
-define(['lib/functions','./Palette','./Controls','./brushes/Sketchy','./brushes/LongFur'], function(fn, Palette, Controls, Sketchy, LongFur) {
+define(['lib/functions'], function(fn) {
 	function Harmony() {
 		this.canvas = this.createCanvas();
 		this.context = this.canvas.getContext('2d');
 		this.flattenCanvas = this.createCanvas();
 		this.trimmedCanvas = this.createCanvas();
 		this.$container.append(this.canvas);
-
-		this.palette = new Palette();
-		this.brush.current = new Sketchy(this.context);
-
-		this.controls = new Controls(this, this.$container.find('.harmony__controls'));
 
 		this.populateFromLocalStorage();
 	
@@ -33,8 +28,6 @@ define(['lib/functions','./Palette','./Controls','./brushes/Sketchy','./brushes/
 		brush: {
 			current: null,
 			types: {
-				sketchy: Sketchy,
-				longfur: LongFur
 			}
 		},
 		foregroundColorSelector: null,
