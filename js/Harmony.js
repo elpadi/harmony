@@ -9,7 +9,9 @@ define(['lib/functions'], function(fn) {
 		this.populateFromLocalStorage();
 	
 		this.canvas.addEventListener('mousedown', this.bind(this.onCanvasMouseDown), false);
-		this.canvas.addEventListener('mouseup', this.bind(this.onCanvasMouseUp), false);
+		this.canvas.addEventListener('touchstart', this.bind(this.onCanvasTouchStart), false);
+		this.canvas.addEventListener('mouseup', this.bind(this.finishDrawing), false);
+		this.canvas.addEventListener('touchend', this.bind(this.finishDrawing), false);
 
 		this.resize();
 	}
@@ -65,12 +67,25 @@ define(['lib/functions'], function(fn) {
 			}
 		},
 
-		trackCanvasMouse: function() {
-			this.$container.on('mousemove', this.bind(this.onCanvasMouseMove));
+		startDrawing: function(x, y) {
+			if (this.allowDrawing) {
+				this.brush.current.strokeStart(x, y);
+				this.trackCanvasMovement();
+			}
 		},
 
-		forgetCanvasMouse: function() {
-			this.$container.off('mousemove');
+		finishDrawing: function() {
+			this.brush.current.strokeEnd();
+			this.forgetCanvasMovement();
+			this.resetAutoSave();
+		},
+
+		forgetCanvasMovement: function() {
+			this.$container.off('mousemove touchmove');
+		},
+
+		saveToLocalStorage: function() {
+			window.localStorage.canvas = this.canvas.toDataURL('image/png');
 		},
 
 		resetAutoSave: function() {
@@ -79,24 +94,41 @@ define(['lib/functions'], function(fn) {
 		},
 
 		onCanvasMouseDown: function(event) {
-			if (this.allowDrawing) {
-				this.brush.current.strokeStart(event.offsetX || event.clientX, event.offsetY || event.clientY);
-				this.trackCanvasMouse();
-			}
+			this.startDrawing(event.offsetX || event.clientX, event.offsetY || event.clientY);
 		},
 
 		onCanvasMouseMove: function(event) {
 			this.brush.current.stroke(event.offsetX || event.clientX, event.offsetY || event.clientY);
 		},
 
-		onCanvasMouseUp: function() {
-			this.brush.current.strokeEnd();
-			this.forgetCanvasMouse();
-			this.resetAutoSave();
+		onCanvasTouchStart: function(event) {
+			if (event.touches.length === 1) {
+				event.preventDefault();
+				this.startDrawing(event.touches[0].clientX, event.touches[0].clientY);
+			}
 		},
 
-		saveToLocalStorage: function() {
-			window.localStorage.canvas = this.canvas.toDataURL('image/png');
+		onCanvasTouchMove: function(event) {
+			this.brush.current.stroke(event.touches[0].clientX, event.touches[0].clientY);
+		},
+
+		trackCanvasFinger: function() {
+			this.$container.on('touchmove', this.bind(function(e) {
+				var event = e.originalEvent;
+				if (event.touches.length === 1) {
+					event.preventDefault();
+					this.onCanvasTouchMove(event);
+				}
+			}, this));
+		},
+
+		trackCanvasMouse: function() {
+			this.$container.on('mousemove', this.bind(this.onCanvasMouseMove));
+		},
+
+		trackCanvasMovement: function() {
+			this.trackCanvasMouse();
+			this.trackCanvasFinger();
 		},
 
 		flatten: function() {
