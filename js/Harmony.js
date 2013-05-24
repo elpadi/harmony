@@ -21,6 +21,7 @@ define(['lib/functions'], function(fn) {
 			shift: false
 		},
 		trimBeforeSaving: true,
+		allowDrawing: true,
 		canvas: null,
 		flattenCanvas: null,
 		trimmedCanvas: null,
@@ -78,8 +79,10 @@ define(['lib/functions'], function(fn) {
 		},
 
 		onCanvasMouseDown: function(event) {
-			this.brush.current.strokeStart(event.offsetX, event.offsetY);
-			this.trackCanvasMouse();
+			if (this.allowDrawing) {
+				this.brush.current.strokeStart(event.offsetX, event.offsetY);
+				this.trackCanvasMouse();
+			}
 		},
 
 		onCanvasMouseMove: function(event) {
