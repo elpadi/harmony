@@ -80,13 +80,13 @@ define(['lib/functions'], function(fn) {
 
 		onCanvasMouseDown: function(event) {
 			if (this.allowDrawing) {
-				this.brush.current.strokeStart(event.offsetX, event.offsetY);
+				this.brush.current.strokeStart(event.offsetX || event.clientX, event.offsetY || event.clientY);
 				this.trackCanvasMouse();
 			}
 		},
 
 		onCanvasMouseMove: function(event) {
-			this.brush.current.stroke(event.offsetX, event.offsetY);
+			this.brush.current.stroke(event.offsetX || event.clientX, event.offsetY || event.clientY);
 		},
 
 		onCanvasMouseUp: function() {
